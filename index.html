@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mini Social App</title>
+
+    <style>
+        body{
+            background-color: black;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+        }
+
+        .container{
+            margin-top: 50px;
+        }
+
+        .card{
+            background-color: #1e1e1e;
+            padding: 20px;
+            margin: 20px auto;
+            width: 300px;
+            border-radius: 10px;
+        }
+
+        input{
+            padding: 5px;
+            width: 65%;
+        }
+
+        button{
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .commentList div{
+            background-color: #333;
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .light{
+            background-color: white;
+            color: black;
+        }
+
+        .light .card{
+            background-color: #f2f2f2;
+        }
+
+        .themeBtn{
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container" id="loginPage">
+    <h2>🔐 Login</h2>
+    <input type="text" id="usernameInput" placeholder="Enter Username">
+    <button onclick="login()">Login</button>
+</div>
+
+<div class="container" id="appPage" style="display:none;">
+
+    <h1>🚀 Mini Social App</h1>
+    <p id="welcomeText"></p>
+
+    <button class="themeBtn">🌗 Toggle Theme</button>
+    <button onclick="logout()">Logout</button>
+
+    <div class="card" data-id="1">
+        <h3>Post 1</h3>
+        <p>Welcome Developer 😎</p>
+
+        <button class="likeBtn">❤️ Like</button>
+        <p class="likeCount">Likes: 0</p>
+
+        <input type="text" class="commentInput" placeholder="Comment karo">
+        <button class="commentBtn">Add</button>
+
+        <div class="commentList"></div>
+    </div>
+
+</div>
+
+<script>
+
+// LOGIN SYSTEM
+function login(){
+    const username = document.getElementById("usernameInput").value;
+
+    if(username.trim() !== ""){
+        localStorage.setItem("username", username);
+        checkLogin();
+    }
+}
+
+function logout(){
+    localStorage.removeItem("username");
+    location.reload();
+}
+
+function checkLogin(){
+    const username = localStorage.getItem("username");
+
+    if(username){
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("appPage").style.display = "block";
+        document.getElementById("welcomeText").innerText = "Welcome, " + username;
+    }
+}
+
+checkLogin();
+
+
+// THEME SYSTEM
+const themeBtn = document.querySelector(".themeBtn");
+
+if(themeBtn){
+    let savedTheme = localStorage.getItem("theme") || "dark";
+    document.body.className = savedTheme;
+
+    themeBtn.addEventListener("click", function(){
+        if(document.body.classList.contains("dark")){
+            document.body.className = "light";
+            localStorage.setItem("theme", "light");
+        } else {
+            document.body.className = "dark";
+            localStorage.setItem("theme", "dark");
+        }
+    });
+}
+
+
+// LIKE + COMMENT SYSTEM
+const cards = document.querySelectorAll(".card");
+
+cards.forEach(function(card){
+
+    const cardId = card.getAttribute("data-id");
+    const input = card.querySelector(".commentInput");
+    const button = card.querySelector(".commentBtn");
+    const commentList = card.querySelector(".commentList");
+    const likeBtn = card.querySelector(".likeBtn");
+    const likeCountText = card.querySelector(".likeCount");
+
+    // Likes
+    let savedLikes = localStorage.getItem("likes_" + cardId) || 0;
+    likeCountText.innerText = "Likes: " + savedLikes;
+
+    likeBtn.addEventListener("click", function(){
+        savedLikes++;
+        likeCountText.innerText = "Likes: " + savedLikes;
+        localStorage.setItem("likes_" + cardId, savedLikes);
+    });
+
+    // Comments
+    let savedComments = JSON.parse(localStorage.getItem("comments_" + cardId)) || [];
+
+    function displayComments(){
+        commentList.innerHTML = "";
+
+        savedComments.forEach(function(comment, index){
+
+            const div = document.createElement("div");
+            const p = document.createElement("p");
+            p.innerText = comment;
+
+            const delBtn = document.createElement("button");
+            delBtn.innerText = "❌ Delete";
+
+            delBtn.addEventListener("click", function(){
+                savedComments.splice(index, 1);
+                localStorage.setItem("comments_" + cardId, JSON.stringify(savedComments));
+                displayComments();
+            });
+
+            div.appendChild(p);
+            div.appendChild(delBtn);
+            commentList.appendChild(div);
+        });
+    }
+
+    displayComments();
+
+    button.addEventListener("click", function(){
+        if(input.value.trim() !== ""){
+            savedComments.push(input.value);
+            localStorage.setItem("comments_" + cardId, JSON.stringify(savedComments));
+            input.value = "";
+            displayComments();
+        }
+    });
+
+});
+
+</script>
+
+</body>
+</html>
