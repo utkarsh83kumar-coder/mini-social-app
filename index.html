@@ -1,202 +1,173 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mini Social App</title>
-
-    <style>
-        body{
-            background-color: black;
-            color: white;
-            font-family: Arial;
-            text-align: center;
-        }
-
-        .container{
-            margin-top: 50px;
-        }
-
-        .card{
-            background-color: #1e1e1e;
-            padding: 20px;
-            margin: 20px auto;
-            width: 300px;
-            border-radius: 10px;
-        }
-
-        input{
-            padding: 5px;
-            width: 65%;
-        }
-
-        button{
-            padding: 5px 10px;
-            margin: 5px;
-            cursor: pointer;
-        }
-
-        .commentList div{
-            background-color: #333;
-            padding: 5px;
-            margin: 5px 0;
-            border-radius: 5px;
-        }
-
-        .light{
-            background-color: white;
-            color: black;
-        }
-
-        .light .card{
-            background-color: #f2f2f2;
-        }
-
-        .themeBtn{
-            padding: 10px 20px;
-        }
-    </style>
+  <title>Mini Social App</title>
+  <style>
+    body { font-family: Arial; text-align: center; }
+    input, button { margin: 5px; padding: 8px; }
+    .post {
+      border: 1px solid #ccc;
+      margin: 10px;
+      padding: 10px;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 8px;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="container" id="loginPage">
-    <h2>🔐 Login</h2>
-    <input type="text" id="usernameInput" placeholder="Enter Username">
+  <h1>Mini Social App 🚀</h1>
+
+  <!-- AUTH SECTION -->
+  <div id="authSection">
+    <input type="text" id="username" placeholder="Username"><br>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="register()">Register</button>
     <button onclick="login()">Login</button>
-</div>
+  </div>
 
-<div class="container" id="appPage" style="display:none;">
-
-    <h1>🚀 Mini Social App</h1>
-    <p id="welcomeText"></p>
-
-    <button class="themeBtn">🌗 Toggle Theme</button>
+  <!-- APP SECTION -->
+  <div id="appSection" style="display:none;">
+    <h2 id="welcomeUser"></h2>
     <button onclick="logout()">Logout</button>
+    <br><br>
+    <input type="text" id="postText" placeholder="What's on your mind?">
+    <button onclick="addPost()">Post</button>
 
-    <div class="card" data-id="1">
-        <h3>Post 1</h3>
-        <p>Welcome Developer 😎</p>
+    <div id="posts"></div>
+  </div>
 
-        <button class="likeBtn">❤️ Like</button>
-        <p class="likeCount">Likes: 0</p>
+<script type="module">
 
-        <input type="text" class="commentInput" placeholder="Comment karo">
-        <button class="commentBtn">Add</button>
+// 🔥 Firebase Import
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        <div class="commentList"></div>
-    </div>
+// 🔥 Your Firebase Config
+const firebaseConfig = {
+  apiKey: "YOUR_AIzaSyAvEjPdUX26M8COfDlHIal_8jeqgJ9JdtgAPI_KEY",
+  authDomain: "mini-social-app-8cea7.firebaseapp.com",
+  projectId: "mini-social-app-8cea7",
+  storageBucket: "mini-social-app-8cea7.firebasestorage.app",
+  messagingSenderId: "565954328821",
+  appId: "1:565954328821:web:d55e0b927147e8d185adbc"
+};
 
-</div>
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-<script>
+// 🔥 Register
+window.register = async function () {
+  const username = document.getElementById("username").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-// LOGIN SYSTEM
-function login(){
-    const username = document.getElementById("usernameInput").value;
+  if (username === "") {
+    alert("⚠️ Username likho!");
+    return;
+  }
 
-    if(username.trim() !== ""){
-        localStorage.setItem("username", username);
-        checkLogin();
-    }
-}
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-function logout(){
-    localStorage.removeItem("username");
-    location.reload();
-}
-
-function checkLogin(){
-    const username = localStorage.getItem("username");
-
-    if(username){
-        document.getElementById("loginPage").style.display = "none";
-        document.getElementById("appPage").style.display = "block";
-        document.getElementById("welcomeText").innerText = "Welcome, " + username;
-    }
-}
-
-checkLogin();
-
-
-// THEME SYSTEM
-const themeBtn = document.querySelector(".themeBtn");
-
-if(themeBtn){
-    let savedTheme = localStorage.getItem("theme") || "dark";
-    document.body.className = savedTheme;
-
-    themeBtn.addEventListener("click", function(){
-        if(document.body.classList.contains("dark")){
-            document.body.className = "light";
-            localStorage.setItem("theme", "light");
-        } else {
-            document.body.className = "dark";
-            localStorage.setItem("theme", "dark");
-        }
-    });
-}
-
-
-// LIKE + COMMENT SYSTEM
-const cards = document.querySelectorAll(".card");
-
-cards.forEach(function(card){
-
-    const cardId = card.getAttribute("data-id");
-    const input = card.querySelector(".commentInput");
-    const button = card.querySelector(".commentBtn");
-    const commentList = card.querySelector(".commentList");
-    const likeBtn = card.querySelector(".likeBtn");
-    const likeCountText = card.querySelector(".likeCount");
-
-    // Likes
-    let savedLikes = localStorage.getItem("likes_" + cardId) || 0;
-    likeCountText.innerText = "Likes: " + savedLikes;
-
-    likeBtn.addEventListener("click", function(){
-        savedLikes++;
-        likeCountText.innerText = "Likes: " + savedLikes;
-        localStorage.setItem("likes_" + cardId, savedLikes);
+    await addDoc(collection(db, "users"), {
+      uid: user.uid,
+      username: username,
+      email: email
     });
 
-    // Comments
-    let savedComments = JSON.parse(localStorage.getItem("comments_" + cardId)) || [];
+    alert("Registered Successfully!");
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
-    function displayComments(){
-        commentList.innerHTML = "";
+// 🔥 Login
+window.login = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-        savedComments.forEach(function(comment, index){
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
 
-            const div = document.createElement("div");
-            const p = document.createElement("p");
-            p.innerText = comment;
+    document.getElementById("authSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
 
-            const delBtn = document.createElement("button");
-            delBtn.innerText = "❌ Delete";
+    loadUser();
+    loadPosts();
 
-            delBtn.addEventListener("click", function(){
-                savedComments.splice(index, 1);
-                localStorage.setItem("comments_" + cardId, JSON.stringify(savedComments));
-                displayComments();
-            });
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
-            div.appendChild(p);
-            div.appendChild(delBtn);
-            commentList.appendChild(div);
-        });
+// 🔥 Load Username
+async function loadUser() {
+  const querySnapshot = await getDocs(collection(db, "users"));
+
+  querySnapshot.forEach((doc) => {
+    if (doc.data().uid === auth.currentUser.uid) {
+      document.getElementById("welcomeUser").innerText =
+        "Welcome " + doc.data().username + " 👋";
     }
+  });
+}
 
-    displayComments();
+// 🔥 Add Post
+window.addPost = async function () {
+  const text = document.getElementById("postText").value;
 
-    button.addEventListener("click", function(){
-        if(input.value.trim() !== ""){
-            savedComments.push(input.value);
-            localStorage.setItem("comments_" + cardId, JSON.stringify(savedComments));
-            input.value = "";
-            displayComments();
-        }
-    });
+  if (text === "") {
+    alert("⚠️ Pehle kuch likho!");
+    return;
+  }
 
-});
+  const querySnapshot = await getDocs(collection(db, "users"));
+  let username = "";
+
+  querySnapshot.forEach((doc) => {
+    if (doc.data().uid === auth.currentUser.uid) {
+      username = doc.data().username;
+    }
+  });
+
+  await addDoc(collection(db, "posts"), {
+    content: text,
+    username: username,
+    created: new Date()
+  });
+
+  document.getElementById("postText").value = "";
+  loadPosts();
+};
+
+// 🔥 Load Posts
+async function loadPosts() {
+  const querySnapshot = await getDocs(collection(db, "posts"));
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
+  querySnapshot.forEach((doc) => {
+    postsDiv.innerHTML += `
+      <div class="post">
+        <b>${doc.data().username}</b><br>
+        ${doc.data().content}
+      </div>
+    `;
+  });
+}
+
+// 🔥 Logout
+window.logout = async function () {
+  await signOut(auth);
+  location.reload();
+};
 
 </script>
 
