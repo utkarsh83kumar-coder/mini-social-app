@@ -1,0 +1,175 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html>
+<head>
+  <title>Mini Social App</title>
+  <style>
+    body { font-family: Arial; text-align: center; }
+    input, button { margin: 5px; padding: 8px; }
+    .post {
+      border: 1px solid #ccc;
+      margin: 10px;
+      padding: 10px;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Mini Social App 🚀</h1>
+
+  <!-- AUTH SECTION -->
+  <div id="authSection">
+    <input type="text" id="username" placeholder="Username"><br>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- APP SECTION -->
+  <div id="appSection" style="display:none;">
+    <h2 id="welcomeUser"></h2>
+    <button onclick="logout()">Logout</button>
+    <br><br>
+    <input type="text" id="postText" placeholder="What's on your mind?">
+    <button onclick="addPost()">Post</button>
+
+    <div id="posts"></div>
+  </div>
+
+<script type="module">
+
+// 🔥 Firebase Import
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔥 Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAvEjPdUX26M8COfDlHIal_8jeqgJ9Jdtg",
+  authDomain: "mini-social-app-8cea7.firebaseapp.com",
+  projectId: "mini-social-app-8cea7",
+  storageBucket: "mini-social-app-8cea7.firebasestorage.app",
+  messagingSenderId: "565954328821",
+  appId: "1:565954328821:web:d55e0b927147e8d185adbc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 🔥 Register
+window.register = async function () {
+  const username = document.getElementById("username").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (username === "") {
+    alert("⚠️ Username likho!");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    await addDoc(collection(db, "users"), {
+      uid: user.uid,
+      username: username,
+      email: email
+    });
+
+    alert("Registered Successfully!");
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+// 🔥 Login
+window.login = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+
+    document.getElementById("authSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
+
+    loadUser();
+    loadPosts();
+
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+// 🔥 Load Username
+async function loadUser() {
+  const querySnapshot = await getDocs(collection(db, "users"));
+
+  querySnapshot.forEach((doc) => {
+    if (doc.data().uid === auth.currentUser.uid) {
+      document.getElementById("welcomeUser").innerText =
+        "Welcome " + doc.data().username + " 👋";
+    }
+  });
+}
+
+// 🔥 Add Post
+window.addPost = async function () {
+  const text = document.getElementById("postText").value;
+
+  if (text === "") {
+    alert("⚠️ Pehle kuch likho!");
+    return;
+  }
+
+  const querySnapshot = await getDocs(collection(db, "users"));
+  let username = "";
+
+  querySnapshot.forEach((doc) => {
+    if (doc.data().uid === auth.currentUser.uid) {
+      username = doc.data().username;
+    }
+  });
+
+  await addDoc(collection(db, "posts"), {
+    content: text,
+    username: username,
+    created: new Date()
+  });
+
+  document.getElementById("postText").value = "";
+  loadPosts();
+};
+
+// 🔥 Load Posts
+async function loadPosts() {
+  const querySnapshot = await getDocs(collection(db, "posts"));
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
+  querySnapshot.forEach((doc) => {
+    postsDiv.innerHTML += `
+      <div class="post">
+        <b>${doc.data().username}</b><br>
+        ${doc.data().content}
+      </div>
+    `;
+  });
+}
+
+// 🔥 Logout
+window.logout = async function () {
+  await signOut(auth);
+  location.reload();
+};
+
+</script>
+
+</body>
+</html>
